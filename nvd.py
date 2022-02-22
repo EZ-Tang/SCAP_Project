@@ -3,7 +3,7 @@ Author: Eric Tang
 Date: 11/21/2021
 SCAP Project
 
-Updated: 1/12/2022
+This program extracts structured vulnerabilities from NVD database.
 """
 import urllib.request, json 
 import write
@@ -36,9 +36,9 @@ def key_recursion(key, ret = [], val = []):
 exist = bool(write.get_values("nvd_type"))
 cve_list = []
 if exist:
-    #headers = write.get_values("nvd_type")[0] + write.get_values("nvd_data")[0] + write.get_values("nvd_date")[0]
+    headers = write.get_headers(["nvd_type", "nvd_data", "nvd_date"])
     cve_list = write.get_values("nvd_type", "ID")
-
+    
 
 """
 Main function
@@ -48,8 +48,10 @@ Creates a matrix of all vulnerabilities and their attributes
 """
 index = 0
 moreResults = 1
-while moreResults != 0 and not exist: #and index < 5000: # measures totalResults per page
+while moreResults != 0: # measures totalResults per page
+    stop = True # used for updating, irrevelant otherwise
     with urllib.request.urlopen("https://services.nvd.nist.gov/rest/json/cves/1.0/?resultsPerPage=2000&startIndex=" + str(index)) as url:
+
         data = json.loads(url.read().decode())
         moreResults = data["totalResults"]
         for key in data['result']['CVE_Items']:
@@ -73,19 +75,41 @@ while moreResults != 0 and not exist: #and index < 5000: # measures totalResults
             v = [""] * len(headers)
             for val in v_index:
                 v[val] = list2.pop(0)
-            vulns.append(v)
+
+
+            """
+            If no spreadsheet is created or vulnerability doesn't exist
+            Appends vulnerability to the matrix
+            """
+            if not exist:
+                vulns.append(v)
+            elif exist and v[3] not in cve_list:
+                vulns.append(v)
+                stop = False
 
             """
             Ensures all vuln have the same # of headers 
             (regardless if they exist)
             """
-            i = 0
-            while (len(headers) > len(vulns[i])):
-                vulns[i] = vulns[i] + ([""] * (len(headers) - len(vulns[i])))
-                i = i + 1
+            if not exist:
+                i = 0
+                while (len(headers) > len(vulns[i])):
+                    vulns[i] = vulns[i] + ([""] * (len(headers) - len(vulns[i])))
+                    i = i + 1
 
         print(index)
         index += 2000 
 
+    """
+    Stops running when there's no more new vulnerabilities in last batch
+    """
+    if (stop and exist):
+        print("STOPPED")
+        break
+
+# feeds into google spreadsheet, reorders from oldest to newest
+vulns.reverse()
 if not exist:
-    write.feed_nvd(headers, vulns) # feeds into google spreadsheet
+    write.feed_nvd(headers, vulns)
+elif len(vulns) > 0:
+    write.update_nvd(vulns)

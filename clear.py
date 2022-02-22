@@ -1,7 +1,9 @@
 """
 Author: Eric Tang
 Date: 11/28/2021
-SCAP Project V1.0
+SCAP Project
+
+This program clears Google Spreadsheet.
 """
 
 import gspread
@@ -12,9 +14,19 @@ scope = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/aut
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(creds)
 
-sheet = client.open("SCAP").worksheet("nvd_type")
-sheet.clear()  
-sheet = client.open("SCAP").worksheet("nvd_data")
-sheet.clear()  
-sheet = client.open("SCAP").worksheet("nvd_date")
-sheet.clear()  
+clear_nvd = False
+clear_nipc = True
+
+if clear_nvd:
+    sheet = client.open("SCAP").worksheet("nvd_type")
+    sheet.clear()  
+    sheet = client.open("SCAP").worksheet("nvd_data")
+    sheet.clear()  
+    sheet = client.open("SCAP").worksheet("nvd_date")
+    sheet.clear()  
+
+if clear_nipc:
+    sheet = client.open("SCAP").worksheet("nipc_type")
+    sheet.clear()   
+    sheet = client.open("SCAP").worksheet("nipc_data")
+    sheet.clear()   
